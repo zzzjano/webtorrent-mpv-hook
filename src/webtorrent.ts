@@ -3,6 +3,7 @@ let active = false;
 let initialyActive = false;
 let overlayText = '';
 let playlist: string[] = [];
+let fileIndex = -1;  // Przechowuje indeks pliku, który ma być załadowany
 
 // Sync with options in webtorrent.node.ts
 const options = {
@@ -66,15 +67,32 @@ function clearOverlay() {
 }
 
 function openPlaylist() {
-  for (let i = 0; i < playlist.length; i++) {
-    const item = playlist[i];
-    if (!item) {
-      continue;
+  if (fileIndex >= 0 && fileIndex < playlist.length) {
+    // Jeśli określony jest konkretny indeks pliku, ładujemy go jako pierwszy
+    const fileToLoad = playlist[fileIndex];
+    if (fileToLoad) {
+      mp.commandv('loadfile', fileToLoad);
     }
-    if (i === 0) {
-      mp.commandv('loadfile', item);
-    } else {
-      mp.commandv('loadfile', item, 'append');
+    
+    // Dodaj pozostałe pliki do playlisty
+    for (let i = 0; i < playlist.length; i++) {
+      const item = playlist[i];
+      if (i !== fileIndex && item) {
+        mp.commandv('loadfile', item, 'append');
+      }
+    }
+  } else {
+    // Oryginalny kod - ładowanie wszystkich plików w kolejności
+    for (let i = 0; i < playlist.length; i++) {
+      const item = playlist[i];
+      if (!item) {
+        continue;
+      }
+      if (i === 0) {
+        mp.commandv('loadfile', item);
+      } else {
+        mp.commandv('loadfile', item, 'append');
+      }
     }
   }
 }
@@ -109,16 +127,36 @@ function onIdleActiveChange(name: string, idleActive?: boolean) {
 
 function onLoadHook() {
   const url = mp.get_property('stream-open-filename', '');
-
+  fileIndex = -1; // Reset indeksu pliku
+  
   try {
-    if (/^magnet:/i.test(url)) {
-      runHook(url);
-    } else if (/\.torrent$/i.test(url)) {
-      runHook(url);
-    } else if (/^[0-9A-F]{40}$/i.test(url)) {
-      runHook(url);
-    } else if (/^[0-9A-Z]{32}$/i.test(url)) {
-      runHook(url);
+    // Sprawdzanie czy URL zawiera parametr #fileIndex
+    const fileIndexMatch = url.match(/#fileIndex=(\d+)/);
+    if (fileIndexMatch && fileIndexMatch[1]) {
+      fileIndex = parseInt(fileIndexMatch[1], 10);
+      // Usunięcie parametru fileIndex z URL, aby nie zakłócić parsowania magnet linku
+      const cleanUrl = url.replace(/#fileIndex=\d+/, '');
+      
+      if (/^magnet:/i.test(cleanUrl)) {
+        runHook(cleanUrl);
+      } else if (/\.torrent$/i.test(cleanUrl)) {
+        runHook(cleanUrl);
+      } else if (/^[0-9A-F]{40}$/i.test(cleanUrl)) {
+        runHook(cleanUrl);
+      } else if (/^[0-9A-Z]{32}$/i.test(cleanUrl)) {
+        runHook(cleanUrl);
+      }
+    } else {
+      // Oryginalny kod bez modyfikacji URL
+      if (/^magnet:/i.test(url)) {
+        runHook(url);
+      } else if (/\.torrent$/i.test(url)) {
+        runHook(url);
+      } else if (/^[0-9A-F]{40}$/i.test(url)) {
+        runHook(url);
+      } else if (/^[0-9A-Z]{32}$/i.test(url)) {
+        runHook(url);
+      }
     }
   } catch (_e) {
     const e = _e as Error;
@@ -203,6 +241,7 @@ function onWebTorrentExit(success: boolean, _result: unknown): void {
   webTorrentRunning = false;
   overlayText = '';
   clearOverlay();
+  fileIndex = -1; // Reset indeksu pliku
 
   const result = _result as mp.CapturedProcess;
   if (!success) {
