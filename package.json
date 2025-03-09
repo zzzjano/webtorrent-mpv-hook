@@ -5,12 +5,12 @@
   "license": "Unlicense",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrxdst/webtorrent-mpv-hook.git"
+    "url": "git+https://github.com/zzzjano/webtorrent-mpv-hook.git"
   },
   "bugs": {
-    "url": "https://github.com/mrxdst/webtorrent-mpv-hook/issues"
+    "url": "https://github.com/zzzjano/webtorrent-mpv-hook/issues"
   },
-  "homepage": "https://github.com/mrxdst/webtorrent-mpv-hook#readme",
+  "homepage": "https://github.com/zzzjano/webtorrent-mpv-hook#readme",
   "keywords": [
     "mpv",
     "webtorrent"
